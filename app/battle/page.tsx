@@ -218,7 +218,7 @@ export default function BattlePage() {
               </div>
             )}
 
-            {/* 전문적인 분석 결과 */}
+            {/* 전문적인 분석 결과 - 승자 발표 바로 아래 */}
             {currentImage && opponentImage && winnerImage && (
               <BattleAnalysisResult
                 currentImage={currentImage}

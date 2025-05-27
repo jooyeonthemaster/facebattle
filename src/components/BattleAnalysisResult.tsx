@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Image as ImageType } from '@/src/types';
 
 interface BattleAnalysisResultProps {
@@ -55,106 +56,59 @@ export default function BattleAnalysisResult({
   analysisText 
 }: BattleAnalysisResultProps) {
   const { verdict, winner } = extractKeyInsights(analysisText);
+  const [showCurrentDetails, setShowCurrentDetails] = useState(false);
+  const [showOpponentDetails, setShowOpponentDetails] = useState(false);
 
   return (
     <div className="space-y-6">
-      {/* 점수 비교 차트 */}
-      <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl p-6 border border-purple-400/30">
-        <h3 className="text-xl font-serif text-yellow-300 mb-6 text-center">
-          📊 세부 항목별 점수 비교
-        </h3>
-        
-        <div className="space-y-4">
-          {analysisCategories.map((category) => {
-            const currentScore = currentImage.analysis[category.key as keyof typeof currentImage.analysis] as number;
-            const opponentScore = opponentImage.analysis[category.key as keyof typeof opponentImage.analysis] as number;
-            const maxScore = Math.max(currentScore, opponentScore, 10);
-            
-            return (
-              <div key={category.key} className="bg-purple-800/30 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl">{category.icon}</span>
-                    <span className="text-purple-100 font-medium">{category.name}</span>
-                  </div>
-                  <div className="flex space-x-4 text-sm">
-                    <span className={`px-2 py-1 rounded ${getScoreGrade(currentScore).bg} ${getScoreGrade(currentScore).color}`}>
-                      {currentImage.userName}: {currentScore}점 ({getScoreGrade(currentScore).grade})
-                    </span>
-                    <span className={`px-2 py-1 rounded ${getScoreGrade(opponentScore).bg} ${getScoreGrade(opponentScore).color}`}>
-                      {opponentImage.userName}: {opponentScore}점 ({getScoreGrade(opponentScore).grade})
-                    </span>
-                  </div>
-                </div>
-                
-                {/* 점수 바 차트 */}
-                <div className="space-y-2">
-                  {/* 현재 사용자 */}
-                  <div className="flex items-center space-x-3">
-                    <div className="w-20 text-sm text-purple-200 truncate">{currentImage.userName}</div>
-                    <div className="flex-1 bg-purple-700/50 rounded-full h-3 relative overflow-hidden">
-                      <div 
-                        className={`h-full bg-gradient-to-r ${category.color} transition-all duration-1000 relative`}
-                        style={{ width: `${(currentScore / maxScore) * 100}%` }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="w-12 text-sm text-purple-200 text-right">{currentScore}</div>
-                  </div>
-                  
-                  {/* 상대방 */}
-                  <div className="flex items-center space-x-3">
-                    <div className="w-20 text-sm text-purple-200 truncate">{opponentImage.userName}</div>
-                    <div className="flex-1 bg-purple-700/50 rounded-full h-3 relative overflow-hidden">
-                      <div 
-                        className={`h-full bg-gradient-to-r ${category.color} opacity-70 transition-all duration-1000 relative`}
-                        style={{ width: `${(opponentScore / maxScore) * 100}%` }}
-                      >
-                        <div className="absolute inset-0 bg-white/10 animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="w-12 text-sm text-purple-200 text-right">{opponentScore}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* 최종 판정 - 맨 위로 이동 */}
+      {verdict && (
+        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-6 border-2 border-yellow-400/50">
+          <h3 className="text-xl font-serif text-yellow-300 mb-4 text-center">
+            🔮 마법의 거울 최종 판정
+          </h3>
+          <div className="bg-purple-800/50 rounded-lg p-4">
+            <p className="text-purple-100 leading-relaxed text-center">
+              {verdict}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 종합 점수 비교 */}
+      {/* 종합 점수 비교 - 가로 배치 */}
       <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl p-6 border border-purple-400/30">
         <h3 className="text-xl font-serif text-yellow-300 mb-6 text-center">
           🏆 종합 점수 비교
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 가로 배치로 변경 */}
+        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
           {/* 현재 사용자 */}
           <div className={`
-            relative p-6 rounded-xl border-2 transition-all duration-300
+            relative p-6 rounded-xl border-2 transition-all duration-300 flex-1 max-w-sm
             ${winnerImage.id === currentImage.id 
               ? 'border-yellow-400 bg-yellow-500/10 shadow-lg shadow-yellow-400/20' 
               : 'border-purple-400/50 bg-purple-800/30'
             }
           `}>
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 relative">
+              {/* 더 큰 이미지 */}
+              <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 relative">
                 <img 
                   src={currentImage.imageUrl} 
                   alt={currentImage.userName}
                   className="w-full h-full object-cover rounded-full border-4 border-purple-400"
                 />
                 {winnerImage.id === currentImage.id && (
-                  <div className="absolute -top-2 -right-2 text-2xl animate-bounce">👑</div>
+                  <div className="absolute -top-2 -right-2 text-2xl sm:text-3xl animate-bounce">👑</div>
                 )}
               </div>
               
-              <h4 className="text-lg font-serif text-purple-100 mb-2">{currentImage.userName}</h4>
+              <h4 className="text-lg sm:text-xl font-serif text-purple-100 mb-2">{currentImage.userName}</h4>
               
               {/* 종합 점수 원형 차트 */}
-              <div className="relative w-24 h-24 mx-auto mb-4">
-                <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+              <div className="relative w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4">
+                <svg className="w-20 h-20 sm:w-28 sm:h-28 transform -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -177,43 +131,59 @@ export default function BattleAnalysisResult({
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg font-bold text-purple-100">
+                  <span className="text-lg sm:text-xl font-bold text-purple-100">
                     {currentImage.analysis.averageScore.toFixed(1)}
                   </span>
                 </div>
               </div>
               
-              <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getScoreGrade(currentImage.analysis.averageScore).bg} ${getScoreGrade(currentImage.analysis.averageScore).color}`}>
+              <div className={`inline-block px-3 py-1 sm:px-4 sm:py-2 rounded-full text-sm sm:text-base font-bold ${getScoreGrade(currentImage.analysis.averageScore).bg} ${getScoreGrade(currentImage.analysis.averageScore).color}`}>
                 {getScoreGrade(currentImage.analysis.averageScore).grade}등급
               </div>
+
+              {/* 개별 페르소나 */}
+              {currentImage.analysis.persona && (
+                <div className="mt-4 bg-purple-700/30 rounded-lg p-3">
+                  <h5 className="text-xs sm:text-sm font-serif text-pink-300 mb-2">✨ 페르소나</h5>
+                  <p className="text-purple-100 text-xs sm:text-sm italic">
+                    "{currentImage.analysis.persona}"
+                  </p>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* VS 표시 */}
+          <div className="text-4xl sm:text-6xl font-bold text-yellow-300 animate-pulse">
+            VS
           </div>
 
           {/* 상대방 */}
           <div className={`
-            relative p-6 rounded-xl border-2 transition-all duration-300
+            relative p-6 rounded-xl border-2 transition-all duration-300 flex-1 max-w-sm
             ${winnerImage.id === opponentImage.id 
               ? 'border-yellow-400 bg-yellow-500/10 shadow-lg shadow-yellow-400/20' 
               : 'border-purple-400/50 bg-purple-800/30'
             }
           `}>
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 relative">
+              {/* 더 큰 이미지 */}
+              <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 relative">
                 <img 
                   src={opponentImage.imageUrl} 
                   alt={opponentImage.userName}
                   className="w-full h-full object-cover rounded-full border-4 border-purple-400"
                 />
                 {winnerImage.id === opponentImage.id && (
-                  <div className="absolute -top-2 -right-2 text-2xl animate-bounce">👑</div>
+                  <div className="absolute -top-2 -right-2 text-2xl sm:text-3xl animate-bounce">👑</div>
                 )}
               </div>
               
-              <h4 className="text-lg font-serif text-purple-100 mb-2">{opponentImage.userName}</h4>
+              <h4 className="text-lg sm:text-xl font-serif text-purple-100 mb-2">{opponentImage.userName}</h4>
               
               {/* 종합 점수 원형 차트 */}
-              <div className="relative w-24 h-24 mx-auto mb-4">
-                <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+              <div className="relative w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-4">
+                <svg className="w-20 h-20 sm:w-28 sm:h-28 transform -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -236,47 +206,165 @@ export default function BattleAnalysisResult({
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg font-bold text-purple-100">
+                  <span className="text-lg sm:text-xl font-bold text-purple-100">
                     {opponentImage.analysis.averageScore.toFixed(1)}
                   </span>
                 </div>
               </div>
               
-              <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getScoreGrade(opponentImage.analysis.averageScore).bg} ${getScoreGrade(opponentImage.analysis.averageScore).color}`}>
+              <div className={`inline-block px-3 py-1 sm:px-4 sm:py-2 rounded-full text-sm sm:text-base font-bold ${getScoreGrade(opponentImage.analysis.averageScore).bg} ${getScoreGrade(opponentImage.analysis.averageScore).color}`}>
                 {getScoreGrade(opponentImage.analysis.averageScore).grade}등급
               </div>
+
+              {/* 개별 페르소나 */}
+              {opponentImage.analysis.persona && (
+                <div className="mt-4 bg-purple-700/30 rounded-lg p-3">
+                  <h5 className="text-xs sm:text-sm font-serif text-pink-300 mb-2">✨ 페르소나</h5>
+                  <p className="text-purple-100 text-xs sm:text-sm italic">
+                    "{opponentImage.analysis.persona}"
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 최종 판정 */}
-      {verdict && (
-        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl p-6 border-2 border-yellow-400/50">
-          <h3 className="text-xl font-serif text-yellow-300 mb-4 text-center">
-            🔮 마법의 거울 최종 판정
-          </h3>
-          <div className="bg-purple-800/50 rounded-lg p-4">
-            <p className="text-purple-100 leading-relaxed text-center">
-              {verdict}
-            </p>
+      {/* 토글 가능한 세부 분석 - 현재 사용자 */}
+      <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl border border-purple-400/30">
+        <button
+          onClick={() => setShowCurrentDetails(!showCurrentDetails)}
+          className="w-full p-6 text-left hover:bg-purple-800/30 transition-colors rounded-xl"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-serif text-yellow-300">
+              📊 {currentImage.userName}님의 세부 분석
+            </h3>
+            <div className={`transform transition-transform ${showCurrentDetails ? 'rotate-180' : ''}`}>
+              <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
-        </div>
-      )}
+        </button>
+        
+        {showCurrentDetails && (
+          <div className="px-6 pb-6">
+            <div className="space-y-4">
+              {analysisCategories.map((category) => {
+                const score = currentImage.analysis[category.key as keyof typeof currentImage.analysis] as number;
+                const description = currentImage.analysis[`${category.key}Desc` as keyof typeof currentImage.analysis] as string;
+                
+                return (
+                  <div key={category.key} className="bg-purple-800/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{category.icon}</span>
+                        <span className="text-purple-100 font-medium text-lg">{category.name}</span>
+                      </div>
+                      <div className={`px-4 py-2 rounded-full text-base font-bold ${getScoreGrade(score).bg} ${getScoreGrade(score).color}`}>
+                        {score}점 ({getScoreGrade(score).grade}등급)
+                      </div>
+                    </div>
+                    
+                    {/* 점수 바 */}
+                    <div className="mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-1 bg-purple-700/50 rounded-full h-4 relative overflow-hidden">
+                          <div 
+                            className={`h-full bg-gradient-to-r ${category.color} transition-all duration-1000 relative`}
+                            style={{ width: `${(score / 10) * 100}%` }}
+                          >
+                            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="text-purple-200 text-sm font-medium">{score}/10</div>
+                      </div>
+                    </div>
 
-      {/* 승자의 페르소나 */}
-      {winnerImage.analysis.persona && (
-        <div className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl p-6 border border-pink-400/30">
-          <h3 className="text-xl font-serif text-pink-300 mb-4 text-center">
-            ✨ 승자의 페르소나
-          </h3>
-          <div className="text-center">
-            <p className="text-purple-100 text-lg italic">
-              "{winnerImage.analysis.persona}"
-            </p>
+                    {/* 세부 설명 */}
+                    {description && (
+                      <div className="bg-purple-700/20 rounded-lg p-3">
+                        <p className="text-purple-200 text-sm leading-relaxed">
+                          💬 {description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* 토글 가능한 세부 분석 - 상대방 */}
+      <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl border border-purple-400/30">
+        <button
+          onClick={() => setShowOpponentDetails(!showOpponentDetails)}
+          className="w-full p-6 text-left hover:bg-purple-800/30 transition-colors rounded-xl"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-serif text-yellow-300">
+              📊 {opponentImage.userName}님의 세부 분석
+            </h3>
+            <div className={`transform transition-transform ${showOpponentDetails ? 'rotate-180' : ''}`}>
+              <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </button>
+        
+        {showOpponentDetails && (
+          <div className="px-6 pb-6">
+            <div className="space-y-4">
+              {analysisCategories.map((category) => {
+                const score = opponentImage.analysis[category.key as keyof typeof opponentImage.analysis] as number;
+                const description = opponentImage.analysis[`${category.key}Desc` as keyof typeof opponentImage.analysis] as string;
+                
+                return (
+                  <div key={category.key} className="bg-purple-800/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{category.icon}</span>
+                        <span className="text-purple-100 font-medium text-lg">{category.name}</span>
+                      </div>
+                      <div className={`px-4 py-2 rounded-full text-base font-bold ${getScoreGrade(score).bg} ${getScoreGrade(score).color}`}>
+                        {score}점 ({getScoreGrade(score).grade}등급)
+                      </div>
+                    </div>
+                    
+                    {/* 점수 바 */}
+                    <div className="mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-1 bg-purple-700/50 rounded-full h-4 relative overflow-hidden">
+                          <div 
+                            className={`h-full bg-gradient-to-r ${category.color} transition-all duration-1000 relative`}
+                            style={{ width: `${(score / 10) * 100}%` }}
+                          >
+                            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="text-purple-200 text-sm font-medium">{score}/10</div>
+                      </div>
+                    </div>
+
+                    {/* 세부 설명 */}
+                    {description && (
+                      <div className="bg-purple-700/20 rounded-lg p-3">
+                        <p className="text-purple-200 text-sm leading-relaxed">
+                          💬 {description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/src/components/Header';
-import BattleResult from '@/src/components/BattleResult';
-import ImageAnalysisResult from '@/src/components/ImageAnalysisResult';
+import BattleAnalysisResult from '@/src/components/BattleAnalysisResult';
 import { getRandomImageForBattle, saveBattleResult } from '@/src/lib/firebaseService';
 import { compareImages } from '@/src/lib/gemini';
 import { parseComparisonResult } from '@/src/lib/parseUtils';
@@ -206,98 +205,45 @@ export default function BattlePage() {
           </div>
         ) : showResults ? (
           <div className="space-y-6 sm:space-y-8">
-            {/* 대결 결과 */}
+            {/* 승자 발표 */}
             {currentImage && opponentImage && winnerImage && (
-              <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-400/30 shadow-2xl">
-                <h2 className="text-xl sm:text-2xl font-serif text-center mb-4 sm:mb-6 text-purple-100">
-                  🏆 대결 결과 🏆
+              <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-yellow-400/50 shadow-2xl text-center">
+                <div className="text-4xl sm:text-5xl mb-4">🏆</div>
+                <h2 className="text-2xl sm:text-3xl font-serif text-yellow-300 mb-4">
+                  승자: {winnerImage.userName}
                 </h2>
-                
-                {/* 대결자들 - 모바일 최적화 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                  {/* 현재 사용자 */}
-                  <div className={`
-                    bg-purple-800/30 rounded-xl p-4 sm:p-6 border-2 transition-all duration-300
-                    ${winnerImage?.id === currentImage.id ? 'border-yellow-400 bg-yellow-500/10' : 'border-purple-400/50'}
-                  `}>
-                    <div className="text-center">
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-3 sm:mb-4 relative overflow-hidden rounded-full border-4 border-purple-400">
-                        <img 
-                          src={currentImage.imageUrl} 
-                          alt={currentImage.userName} 
-                          className="w-full h-full object-cover"
-                        />
-                        {winnerImage?.id === currentImage.id && (
-                          <div className="absolute inset-0 bg-yellow-400/20 flex items-center justify-center">
-                            <div className="text-2xl sm:text-3xl">👑</div>
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="text-lg sm:text-xl font-serif text-purple-100 mb-2">{currentImage.userName}</h3>
-                      <p className="text-sm text-purple-300 mb-2">평균 점수: {currentImage.analysis.averageScore.toFixed(1)}점</p>
-                      {winnerImage?.id === currentImage.id && (
-                        <div className="bg-yellow-500/20 px-3 py-1 rounded-full text-yellow-300 text-sm font-bold">
-                          🏆 승리!
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 상대방 */}
-                  <div className={`
-                    bg-purple-800/30 rounded-xl p-4 sm:p-6 border-2 transition-all duration-300
-                    ${winnerImage?.id === opponentImage.id ? 'border-yellow-400 bg-yellow-500/10' : 'border-purple-400/50'}
-                  `}>
-                    <div className="text-center">
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-3 sm:mb-4 relative overflow-hidden rounded-full border-4 border-purple-400">
-                        <img 
-                          src={opponentImage.imageUrl} 
-                          alt={opponentImage.userName} 
-                          className="w-full h-full object-cover"
-                        />
-                        {winnerImage?.id === opponentImage.id && (
-                          <div className="absolute inset-0 bg-yellow-400/20 flex items-center justify-center">
-                            <div className="text-2xl sm:text-3xl">👑</div>
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="text-lg sm:text-xl font-serif text-purple-100 mb-2">{opponentImage.userName}</h3>
-                      <p className="text-sm text-purple-300 mb-2">평균 점수: {opponentImage.analysis.averageScore.toFixed(1)}점</p>
-                      {winnerImage?.id === opponentImage.id && (
-                        <div className="bg-yellow-500/20 px-3 py-1 rounded-full text-yellow-300 text-sm font-bold">
-                          🏆 승리!
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 분석 결과 */}
-                <div className="bg-purple-800/50 rounded-xl p-4 sm:p-6 mb-6">
-                  <h3 className="text-lg sm:text-xl font-serif text-yellow-300 mb-4 text-center">
-                    🔮 마법의 거울의 판정 🔮
-                  </h3>
-                  <ImageAnalysisResult analysis={winnerImage.analysis} />
-                </div>
-
-                {/* 액션 버튼들 - 모바일 최적화 */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                  <button
-                    onClick={handleNewBattle}
-                    className="px-6 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-serif rounded-lg sm:rounded-xl transform hover:scale-105 active:scale-95 transition-all shadow-lg text-sm sm:text-base"
-                  >
-                    🔄 새로운 대결
-                  </button>
-                  
-                  <button
-                    onClick={handleViewRanking}
-                    className="px-6 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-serif rounded-lg sm:rounded-xl transform hover:scale-105 active:scale-95 transition-all shadow-lg text-sm sm:text-base"
-                  >
-                    🏆 랭킹 보기
-                  </button>
-                </div>
+                <p className="text-lg sm:text-xl text-purple-200">
+                  평균 점수 {winnerImage.analysis.averageScore.toFixed(1)}점으로 승리!
+                </p>
               </div>
             )}
+
+            {/* 전문적인 분석 결과 */}
+            {currentImage && opponentImage && winnerImage && (
+              <BattleAnalysisResult
+                currentImage={currentImage}
+                opponentImage={opponentImage}
+                winnerImage={winnerImage}
+                analysisText={resultText}
+              />
+            )}
+
+            {/* 액션 버튼들 */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleNewBattle}
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-serif rounded-xl transform hover:scale-105 active:scale-95 transition-all shadow-lg text-base sm:text-lg"
+              >
+                🔄 새로운 대결
+              </button>
+              
+              <button
+                onClick={handleViewRanking}
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-serif rounded-xl transform hover:scale-105 active:scale-95 transition-all shadow-lg text-base sm:text-lg"
+              >
+                🏆 랭킹 보기
+              </button>
+            </div>
           </div>
         ) : null}
       </div>

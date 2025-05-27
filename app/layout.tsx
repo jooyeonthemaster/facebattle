@@ -15,16 +15,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <header className="bg-white shadow-sm">
-          <div className="max-w-6xl mx-auto p-4 flex justify-between items-center">
-            <a href="/" className="text-xl font-bold text-blue-600">얼평대결</a>
-            <nav>
-              <ul className="flex space-x-6">
-                <li><a href="/upload" className="hover:text-blue-600">업로드</a></li>
-                <li><a href="/battle" className="hover:text-blue-600">대결</a></li>
-                <li><a href="/ranking" className="hover:text-blue-600">랭킹</a></li>
-              </ul>
-            </nav>
-          </div>
+         
         </header>
         
         <main className="max-w-6xl mx-auto p-4 py-8">

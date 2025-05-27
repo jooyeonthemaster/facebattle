@@ -19,6 +19,7 @@ export default function BattlePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [battleResultId, setBattleResultId] = useState<string | null>(null);
   const [stars, setStars] = useState<Array<{width: number, height: number, left: number, top: number, delay: number, duration: number}>>([]);
   
   useEffect(() => {
@@ -97,13 +98,18 @@ export default function BattlePage() {
         setOpponentImage(updatedOpponentImage);
         setWinnerImage(winner);
         
-        // 배틀 결과 저장
-        await saveBattleResult(
+        // 배틀 결과 저장 (이미지 데이터도 함께 저장)
+        const battleResult = await saveBattleResult(
           currentImage.id,
           opponent.id,
           winner.id,
-          result
+          result,
+          updatedCurrentImage,
+          updatedOpponentImage
         );
+        
+        // 공유용 배틀 결과 ID 저장
+        setBattleResultId(battleResult.id);
         
         // 결과를 드라마틱하게 표시
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -127,6 +133,38 @@ export default function BattlePage() {
   // 랭킹 페이지로 이동
   const handleViewRanking = () => {
     router.push('/ranking');
+  };
+  
+  // 배틀 결과 공유
+  const handleShare = async () => {
+    if (!battleResultId) return;
+    
+    const shareUrl = `${window.location.origin}/battle/result/${battleResultId}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '얼평대결 - 배틀 결과',
+          text: `${winnerImage?.userName}님이 승리했습니다!`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // 공유 취소 시 에러 무시
+        if ((err as Error).name !== 'AbortError') {
+          console.error('공유 중 오류:', err);
+        }
+      }
+    } else {
+      // Web Share API를 지원하지 않는 경우 클립보드에 복사
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('링크가 클립보드에 복사되었습니다!');
+      } catch (err) {
+        console.error('클립보드 복사 중 오류:', err);
+        // 클립보드 API도 지원하지 않는 경우 수동 복사 안내
+        prompt('이 링크를 복사하세요:', shareUrl);
+      }
+    }
   };
   
   if (error) {
@@ -230,6 +268,15 @@ export default function BattlePage() {
 
             {/* 액션 버튼들 */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {battleResultId && (
+                <button
+                  onClick={handleShare}
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-serif rounded-xl transform hover:scale-105 active:scale-95 transition-all shadow-lg text-base sm:text-lg"
+                >
+                  📤 결과 공유하기
+                </button>
+              )}
+              
               <button
                 onClick={handleNewBattle}
                 className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-serif rounded-xl transform hover:scale-105 active:scale-95 transition-all shadow-lg text-base sm:text-lg"

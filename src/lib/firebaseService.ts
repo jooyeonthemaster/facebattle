@@ -212,23 +212,40 @@ export async function getRandomImageForBattle(currentImageId: string, currentIma
   }
 }
 
-// 배틀 결과 저장
+// 배틀 결과 저장 (공유 가능한 ID와 함께)
 export async function saveBattleResult(
   image1Id: string,
   image2Id: string,
   winnerId: string,
-  resultText: string
+  resultText: string,
+  image1Data?: Image,
+  image2Data?: Image
 ): Promise<Battle> {
   try {
     const battleId = uuidv4();
     
-    // 배틀 정보 저장
+    // 배틀 정보 저장 (이미지 데이터도 함께 저장하여 공유 시 사용)
     const battleData = {
       image1Id,
       image2Id,
       winnerId,
       resultText,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      // 공유를 위한 이미지 데이터 저장
+      image1Data: image1Data ? {
+        id: image1Data.id,
+        userName: image1Data.userName,
+        imageUrl: image1Data.imageUrl,
+        analysis: image1Data.analysis,
+        gender: image1Data.gender
+      } : null,
+      image2Data: image2Data ? {
+        id: image2Data.id,
+        userName: image2Data.userName,
+        imageUrl: image2Data.imageUrl,
+        analysis: image2Data.analysis,
+        gender: image2Data.gender
+      } : null
     };
     
     // Realtime Database에 배틀 결과 저장
@@ -275,6 +292,108 @@ export async function saveBattleResult(
   } catch (error) {
     console.error('배틀 결과 저장 중 오류:', error);
     throw new Error('배틀 결과를 저장하는데 실패했습니다.');
+  }
+}
+
+// 배틀 결과 조회 (공유용)
+export async function getBattleResult(battleId: string): Promise<{
+  battle: Battle;
+  image1: Image;
+  image2: Image;
+  winner: Image;
+} | null> {
+  try {
+    // Realtime Database에서 배틀 결과 가져오기
+    const battleRef = dbRef(rtdb, `battles/${battleId}`);
+    const snapshot = await get(battleRef);
+    
+    if (!snapshot.exists()) {
+      return null;
+    }
+    
+    const battleData = snapshot.val();
+    
+    // 저장된 이미지 데이터가 있으면 사용, 없으면 개별 조회
+    let image1: Image, image2: Image;
+    
+    if (battleData.image1Data && battleData.image2Data) {
+      // 저장된 데이터 사용
+      image1 = {
+        ...battleData.image1Data,
+        createdAt: new Date(),
+        battleCount: 0,
+        winCount: 0,
+        lossCount: 0
+      };
+      image2 = {
+        ...battleData.image2Data,
+        createdAt: new Date(),
+        battleCount: 0,
+        winCount: 0,
+        lossCount: 0
+      };
+    } else {
+      // 개별 이미지 조회
+      const image1Ref = dbRef(rtdb, `images/${battleData.image1Id}`);
+      const image1Snapshot = await get(image1Ref);
+      
+      const image2Ref = dbRef(rtdb, `images/${battleData.image2Id}`);
+      const image2Snapshot = await get(image2Ref);
+      
+      if (!image1Snapshot.exists() || !image2Snapshot.exists()) {
+        return null;
+      }
+      
+      const image1Data = image1Snapshot.val();
+      const image2Data = image2Snapshot.val();
+      
+      image1 = {
+        id: battleData.image1Id,
+        userID: image1Data.userID || image1Data.userId,
+        userName: image1Data.userName,
+        imageUrl: image1Data.imageUrl,
+        analysis: image1Data.analysis,
+        createdAt: new Date(image1Data.createdAt),
+        battleCount: image1Data.battleCount || image1Data.battlesCount || 0,
+        winCount: image1Data.winCount || image1Data.winsCount || 0,
+        lossCount: image1Data.lossCount || 0,
+        gender: image1Data.gender || 'unknown'
+      };
+      
+      image2 = {
+        id: battleData.image2Id,
+        userID: image2Data.userID || image2Data.userId,
+        userName: image2Data.userName,
+        imageUrl: image2Data.imageUrl,
+        analysis: image2Data.analysis,
+        createdAt: new Date(image2Data.createdAt),
+        battleCount: image2Data.battleCount || image2Data.battlesCount || 0,
+        winCount: image2Data.winCount || image2Data.winsCount || 0,
+        lossCount: image2Data.lossCount || 0,
+        gender: image2Data.gender || 'unknown'
+      };
+    }
+    
+    const winner = battleData.winnerId === image1.id ? image1 : image2;
+    
+    const battle: Battle = {
+      id: battleId,
+      image1Id: battleData.image1Id,
+      image2Id: battleData.image2Id,
+      winnerId: battleData.winnerId,
+      resultText: battleData.resultText,
+      createdAt: new Date(battleData.createdAt)
+    };
+    
+    return {
+      battle,
+      image1,
+      image2,
+      winner
+    };
+  } catch (error) {
+    console.error('배틀 결과 조회 중 오류:', error);
+    throw new Error('배틀 결과를 조회하는데 실패했습니다.');
   }
 }
 

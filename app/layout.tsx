@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "얼평대결 - AI 얼굴 평가 대결",
   description: "AI가 당신의 얼굴을 평가하고, 다른 사람들과 대결해보세요!",
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
 };
 
 export default function RootLayout({

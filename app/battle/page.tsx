@@ -12,7 +12,7 @@ import { Image as ImageType } from '@/src/types';
 
 export default function BattlePage() {
   const router = useRouter();
-  const { currentImage } = useAppStore();
+  const { currentImage, setCurrentImage } = useAppStore();
   const [opponentImage, setOpponentImage] = useState<ImageType | null>(null);
   const [winnerImage, setWinnerImage] = useState<ImageType | null>(null);
   const [resultText, setResultText] = useState<string>('');
@@ -20,20 +20,29 @@ export default function BattlePage() {
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [battleResultId, setBattleResultId] = useState<string | null>(null);
-  const [stars, setStars] = useState<Array<{width: number, height: number, left: number, top: number, delay: number, duration: number}>>([]);
   
   useEffect(() => {
-    // 별 데이터를 클라이언트 사이드에서만 생성
-    const starArray = [...Array(30)].map(() => ({
-      width: Math.random() * 2 + 1,
-      height: Math.random() * 2 + 1,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 3,
-      duration: Math.random() * 3 + 2
-    }));
-    setStars(starArray);
-  }, []);
+    // localStorage에서 선택된 이미지 확인
+    const selectedImageData = localStorage.getItem('selectedImage');
+    if (selectedImageData) {
+      try {
+        const selectedImage = JSON.parse(selectedImageData);
+        // 선택된 이미지를 currentImage로 설정
+        setCurrentImage({
+          ...selectedImage,
+          createdAt: new Date(),
+          battleCount: 0,
+          winCount: 0,
+          lossCount: 0
+        });
+        // localStorage에서 제거 (한 번만 사용)
+        localStorage.removeItem('selectedImage');
+      } catch (error) {
+        console.error('선택된 이미지 데이터 파싱 오류:', error);
+        localStorage.removeItem('selectedImage');
+      }
+    }
+  }, [setCurrentImage]);
   
   useEffect(() => {
     // 현재 이미지가 없으면 홈 페이지로 리다이렉트
@@ -58,7 +67,7 @@ export default function BattlePage() {
         setOpponentImage(opponent);
         
         // 약간의 지연 후 분석 시작 (드라마틱한 효과)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // 두 이미지 비교 분석
         const result = await compareImages(
@@ -95,6 +104,7 @@ export default function BattlePage() {
         }
         
         setResultText(result);
+        setCurrentImage(updatedCurrentImage);
         setOpponentImage(updatedOpponentImage);
         setWinnerImage(winner);
         
@@ -112,7 +122,7 @@ export default function BattlePage() {
         setBattleResultId(battleResult.id);
         
         // 결과를 드라마틱하게 표시
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 800));
         setShowResults(true);
       } catch (err) {
         console.error('배틀 중 오류:', err);
@@ -123,7 +133,7 @@ export default function BattlePage() {
     };
     
     startBattle();
-  }, [currentImage, router]);
+  }, [router]);
   
   // 새로운 대결 시작
   const handleNewBattle = () => {
@@ -137,10 +147,11 @@ export default function BattlePage() {
   
   // 배틀 결과 공유
   const handleShare = async () => {
-    if (!battleResultId) return;
+    if (!battleResultId || !winnerImage || !currentImage || !opponentImage) return;
     
     const shareUrl = `${window.location.origin}/battle/result/${battleResultId}`;
     
+    // Web Share API 시도
     if (navigator.share) {
       try {
         await navigator.share({
@@ -192,23 +203,6 @@ export default function BattlePage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
       <Header />
       
-      {/* 배경 별 효과 */}
-      <div className="fixed inset-0 overflow-hidden">
-        {stars.map((star, i) => (
-          <div
-            key={i}
-            className="absolute bg-white rounded-full opacity-70"
-            style={{
-              width: `${star.width}px`,
-              height: `${star.height}px`,
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              animation: `twinkle ${star.duration}s infinite ${star.delay}s`
-            }}
-          />
-        ))}
-      </div>
-
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif mb-6 sm:mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300">
           ⚔️ 아름다움의 결투장 ⚔️
@@ -294,14 +288,6 @@ export default function BattlePage() {
           </div>
         ) : null}
       </div>
-
-      {/* CSS 애니메이션 */}
-      <style jsx>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 } 

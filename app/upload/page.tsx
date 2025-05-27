@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/src/components/Header';
 import ImageUploader from '@/src/components/ImageUploader';
-import { analyzeImage } from '@/src/lib/gemini';
+import { createEmptyAnalysis } from '@/src/lib/gemini';
 import { uploadImage } from '@/src/lib/firebaseService';
 import { useAppStore } from '@/src/lib/store';
 import { Analysis } from '@/src/types';
@@ -27,21 +27,9 @@ function UploadContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [stars, setStars] = useState<Array<{width: number, height: number, left: number, top: number, delay: number, duration: number}>>([]);
   const { setCurrentImage } = useAppStore();
   
   useEffect(() => {
-    // 별 데이터를 클라이언트 사이드에서만 생성
-    const starArray = [...Array(20)].map(() => ({
-      width: Math.random() * 2 + 1,
-      height: Math.random() * 2 + 1,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 3,
-      duration: Math.random() * 3 + 2
-    }));
-    setStars(starArray);
-    
     // URL 파라미터에서 성별 정보 가져오기
     const genderParam = searchParams.get('gender');
     if (genderParam === 'male' || genderParam === 'female') {
@@ -58,93 +46,7 @@ function UploadContent() {
     setUploadComplete(false);
   };
   
-  // 분석 결과 텍스트를 파싱하여 Analysis 객체로 변환하는 함수
-  const parseAnalysisResult = (text: string): Analysis => {
-    // 기본값 설정
-    const result: Analysis = {
-      goldenRatio: 0,
-      facialFeatures: 0,
-      skinTexture: 0,
-      impressiveness: 0,
-      growingCharm: 0,
-      averageScore: 0,
-      description: text,
-      goldenRatioDesc: "",
-      facialFeaturesDesc: "",
-      skinTextureDesc: "",
-      impressivenessDesc: "",
-      growingCharmDesc: "",
-      persona: ""
-    };
-    
-    try {
-      // 황금비율 점수 및 설명 추출
-      const goldenRatioMatch = text.match(/황금비율 점수:\s*(\d+)점\s*\n([^\n]+)/);
-      if (goldenRatioMatch) {
-        result.goldenRatio = parseInt(goldenRatioMatch[1], 10);
-        result.goldenRatioDesc = goldenRatioMatch[2].trim();
-      }
-      
-      // 이목구비 정밀도 점수 및 설명 추출
-      const facialFeaturesMatch = text.match(/이목구비 정밀도:\s*(\d+)점\s*\n([^\n]+)/);
-      if (facialFeaturesMatch) {
-        result.facialFeatures = parseInt(facialFeaturesMatch[1], 10);
-        result.facialFeaturesDesc = facialFeaturesMatch[2].trim();
-      }
-      
-      // 피부 텍스처 점수 및 설명 추출
-      const skinTextureMatch = text.match(/피부 텍스처:\s*(\d+)점\s*\n([^\n]+)/);
-      if (skinTextureMatch) {
-        result.skinTexture = parseInt(skinTextureMatch[1], 10);
-        result.skinTextureDesc = skinTextureMatch[2].trim();
-      }
-      
-      // 분위기 점수 및 설명 추출
-      const impressivenessMatch = text.match(/분위기:\s*(\d+)점\s*\n([^\n]+)/);
-      if (impressivenessMatch) {
-        result.impressiveness = parseInt(impressivenessMatch[1], 10);
-        result.impressivenessDesc = impressivenessMatch[2].trim();
-      }
-      
-      // 볼매 지수 점수 및 설명 추출
-      const growingCharmMatch = text.match(/볼매 지수:\s*(\d+)점\s*\n([^\n]+)/);
-      if (growingCharmMatch) {
-        result.growingCharm = parseInt(growingCharmMatch[1], 10);
-        result.growingCharmDesc = growingCharmMatch[2].trim();
-      }
-      
-      // 페르소나 추출
-      const personaMatch = text.match(/\*\*페르소나:\*\*\s*\n([^\n]+)/);
-      if (personaMatch) {
-        result.persona = personaMatch[1].trim();
-      }
-      
-      // 평균 점수 계산 또는 추출
-      const averageScoreMatch = text.match(/평균 점수:\s*(\d+\.?\d*)점/);
-      if (averageScoreMatch) {
-        result.averageScore = parseFloat(averageScoreMatch[1]);
-      } else {
-        // 평균 점수가 명시적으로 제공되지 않은 경우 계산
-        const scores = [
-          result.goldenRatio, 
-          result.facialFeatures, 
-          result.skinTexture, 
-          result.impressiveness, 
-          result.growingCharm
-        ].filter(score => score > 0);
-        
-        if (scores.length > 0) {
-          result.averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-        }
-      }
-    } catch (error) {
-      console.error('분석 결과 파싱 중 오류:', error);
-    }
-    
-    return result;
-  };
-  
-  // 이미지 분석 및 업로드 함수
+  // 이미지 업로드 함수 (분석 제거)
   const handleUploadImage = async () => {
     if (!file || !selectedGender || !userName.trim()) {
       alert('이름을 입력해주세요.');
@@ -156,20 +58,17 @@ function UploadContent() {
       
       // 사용자 정보 생성 (입력받은 이름 사용)
       const user = {
-        id: 'user-' + Math.random().toString(36).substring(2, 9),
+        id: 'user-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1000),
         name: userName.trim(),
         email: 'anonymous@example.com',
         createdAt: new Date()
       };
       
-      // Gemini API를 사용하여 이미지 분석 (사용자에게 보여주지 않고 백그라운드에서 처리)
-      const rawResult = await analyzeImage(file);
+      // 빈 분석 객체 생성 (배틀 시점에 분석 수행)
+      const emptyAnalysis = createEmptyAnalysis();
       
-      // 분석 결과 파싱
-      const parsedResult = parseAnalysisResult(rawResult);
-      
-      // Firebase에 이미지 업로드 및 저장
-      const uploadedImage = await uploadImage(file, user, parsedResult, selectedGender);
+      // Firebase에 이미지 업로드 및 저장 (분석 없이)
+      const uploadedImage = await uploadImage(file, user, emptyAnalysis, selectedGender);
       
       // 저장된 이미지 정보를 전역 상태에 저장
       setCurrentImage(uploadedImage);
@@ -178,7 +77,6 @@ function UploadContent() {
       setUploadComplete(true);
       setUploadedImageUrl(uploadedImage.imageUrl);
       
-      // 배틀 페이지로 이동하지 않음
     } catch (error) {
       console.error('이미지 처리 중 오류:', error);
       alert('이미지 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -196,21 +94,13 @@ function UploadContent() {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
       <Header />
       
-      {/* 배경 별 효과 */}
-      <div className="fixed inset-0 overflow-hidden">
-        {stars.map((star, i) => (
-          <div
-            key={i}
-            className="absolute bg-white rounded-full opacity-70"
-            style={{
-              width: `${star.width}px`,
-              height: `${star.height}px`,
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              animation: `twinkle ${star.duration}s infinite ${star.delay}s`
-            }}
-          />
-        ))}
+      {/* 간단한 배경 패턴으로 대체 */}
+      <div className="fixed inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25% 25%, white 2px, transparent 2px),
+                           radial-gradient(circle at 75% 75%, white 1px, transparent 1px)`,
+          backgroundSize: '100px 100px, 50px 50px'
+        }} />
       </div>
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -275,7 +165,7 @@ function UploadContent() {
               disabled={isProcessing || !userName.trim()}
               className={`
                 w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl font-serif text-lg sm:text-xl text-white 
-                shadow-xl transform transition-all duration-300
+                shadow-xl transform transition-all duration-200
                 ${isProcessing || !userName.trim()
                   ? 'bg-purple-600/50 cursor-not-allowed' 
                   : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 hover:scale-105 hover:shadow-2xl active:scale-95'
@@ -284,89 +174,38 @@ function UploadContent() {
             >
               {isProcessing ? (
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-white mr-3"></div>
-                  마법의 거울이 분석 중...
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                  마법의 거울에 저장 중...
                 </div>
-              ) : !userName.trim() ? '이름을 먼저 입력해주세요' : '✨ 이미지 업로드 ✨'}
+              ) : (
+                '🔮 마법의 거울에 저장하기'
+              )}
             </button>
           </div>
         )}
         
-        {uploadComplete && uploadedImageUrl && (
-          <div className="mb-6 sm:mb-8 bg-purple-900/50 backdrop-blur-sm p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-yellow-400/50 shadow-2xl">
-            <div className="flex flex-col items-center">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 mb-4 sm:mb-6 relative overflow-hidden rounded-full border-4 border-yellow-400 shadow-xl">
-                <img 
-                  src={uploadedImageUrl} 
-                  alt="업로드된 이미지" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-pulse" />
-              </div>
-              <div className="bg-yellow-500/20 px-4 sm:px-6 py-2 rounded-full text-yellow-300 font-serif text-base sm:text-lg mb-3">
-                ✨ 분석 완료 ✨
-              </div>
-              <h3 className="text-xl sm:text-2xl font-serif text-yellow-300 mb-2 text-center">
-                {userName}님을 거울이 기억했습니다
+        {/* 업로드 완료 후 배틀 시작 버튼 */}
+        {uploadComplete && (
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 mb-6 border-2 border-green-400/50 shadow-2xl">
+              <div className="text-4xl sm:text-5xl mb-4">✨</div>
+              <h3 className="text-xl sm:text-2xl font-serif text-green-300 mb-4">
+                마법의 거울에 저장되었습니다!
               </h3>
-              <p className="text-purple-200 text-center mb-4 sm:mb-6 text-sm sm:text-base px-4">
-                이제 다른 도전자들과 아름다움을 겨뤄보세요
+              <p className="text-purple-200 mb-6 text-sm sm:text-base">
+                이제 다른 도전자들과의 미모 대결을 시작할 수 있습니다.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md">
-                <button
-                  onClick={() => {
-                    setFile(null);
-                    setUploadComplete(false);
-                    setUploadedImageUrl(null);
-                  }}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-purple-700/50 hover:bg-purple-700/70 text-purple-200 rounded-lg sm:rounded-xl backdrop-blur-sm transition-all duration-300 text-sm sm:text-base"
-                >
-                  다시 선택하기
-                </button>
-                
-                <button
-                  onClick={goToBattle}
-                  className="px-6 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-yellow-500 to-pink-500 hover:from-yellow-600 hover:to-pink-600 text-white font-serif text-base sm:text-lg rounded-lg sm:rounded-xl transform hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-xl"
-                >
-                  ⚔️ 대결 시작하기 ⚔️
-                </button>
-              </div>
+              <button
+                onClick={goToBattle}
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-serif text-lg sm:text-xl shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-200"
+              >
+                ⚔️ 미모 대결 시작하기
+              </button>
             </div>
           </div>
         )}
-        
-        {/* 사용 방법 안내 */}
-        <div className="bg-purple-900/30 backdrop-blur-sm text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-purple-400/30">
-          <h3 className="font-serif text-yellow-300 mb-3 sm:mb-4 text-lg sm:text-xl text-center">✨ 마법의 거울 사용법 ✨</h3>
-          <div className="space-y-2 sm:space-y-3 text-purple-200">
-            <div className="flex items-start">
-              <span className="bg-purple-700/50 h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs mr-2 sm:mr-3 flex-shrink-0 text-yellow-300">1</span>
-              <span className="text-xs sm:text-sm">이름을 입력하고 가장 아름다운 순간의 사진을 선택하세요</span>
-            </div>
-            <div className="flex items-start">
-              <span className="bg-purple-700/50 h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs mr-2 sm:mr-3 flex-shrink-0 text-yellow-300">2</span>
-              <span className="text-xs sm:text-sm">마법의 거울이 황금비율, 이목구비, 피부, 분위기를 분석합니다</span>
-            </div>
-            <div className="flex items-start">
-              <span className="bg-purple-700/50 h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs mr-2 sm:mr-3 flex-shrink-0 text-yellow-300">3</span>
-              <span className="text-xs sm:text-sm">다른 도전자와 1:1 대결로 진정한 미모를 증명하세요</span>
-            </div>
-            <div className="flex items-start">
-              <span className="bg-purple-700/50 h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs mr-2 sm:mr-3 flex-shrink-0 text-yellow-300">4</span>
-              <span className="text-xs sm:text-sm">왕과 여왕의 자리에 도전하세요</span>
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* CSS 애니메이션 */}
-      <style jsx>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

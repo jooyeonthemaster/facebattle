@@ -43,7 +43,13 @@ export function createEmptyAnalysis() {
     impressiveness: 0,
     growingCharm: 0,
     averageScore: 0,
-    description: ''
+    description: '',
+    goldenRatioDesc: '',
+    facialFeaturesDesc: '',
+    skinTextureDesc: '',
+    impressivenessDesc: '',
+    growingCharmDesc: '',
+    persona: ''
   };
 }
 
@@ -197,7 +203,7 @@ export async function compareImages(imageFile1: File, imageFile2: File): Promise
       **최종 승자: [평균 점수가 더 높은 이미지를 여기에 명시하세요]**
       
       **최종 판정**
-      [승자가 이긴 이유를 디시 인사이드 커뮤니티 말투로 주접스럽고 자극적이게 자유롭게 설명. 이 때 반드시 평균 점수가 높은 이미지를 칭찬하고 점수가 낮은 이미지를 약간 깎아내리는 방식으로 서술. 실제 인물이나 유명인의 이름은 절대 언급하지 말 것. 승자의 장점들을 구체적으로 언급하며 왜 승자가 더 높은 점수를 받았는지 명확하게 설명할 것]
+      [승자가 이긴 이유를 디시 인사이드 커뮤니티 말투로 주접스럽고 자극적이게 자유롭게 설명(절대로 "이기야"라는 말을 쓰지 말 것). 이 때 반드시 평균 점수가 높은 이미지를 칭찬하고 점수가 낮은 이미지를 약간 깎아내리는 방식으로 서술. 실제 인물이나 유명인의 이름은 절대 언급하지 말 것. 승자의 장점들을 구체적으로 언급하며 왜 승자가 더 높은 점수를 받았는지 명확하게 설명할 것]
     `;
 
     const result = await model.generateContent([prompt, imagePart1, imagePart2]);

@@ -7,80 +7,48 @@ import Header from '@/src/components/Header';
 export default function Home() {
   const router = useRouter();
   const [selectedGender, setSelectedGender] = useState<'male' | 'female' | null>(null);
-  const [isShimmering, setIsShimmering] = useState(false);
   const [isMirrorReflecting, setIsMirrorReflecting] = useState(false);
-  const [stars, setStars] = useState<Array<{width: number, height: number, left: number, top: number, delay: number, duration: number}>>([]);
-
-  useEffect(() => {
-    // 별 데이터를 클라이언트 사이드에서만 생성
-    const starArray = [...Array(30)].map(() => ({
-      width: Math.random() * 2 + 1,
-      height: Math.random() * 2 + 1,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 3,
-      duration: Math.random() * 3 + 2
-    }));
-    setStars(starArray);
-    
-    // 반짝임 효과를 주기적으로 실행
-    const interval = setInterval(() => {
-      setIsShimmering(true);
-      setTimeout(() => setIsShimmering(false), 1000);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   const handleGenderSelect = (gender: 'male' | 'female') => {
     setSelectedGender(gender);
     setIsMirrorReflecting(true);
     
-    // 애니메이션 후 업로드 페이지로 이동
+    // 애니메이션 시간 단축
     setTimeout(() => {
       router.push(`/upload?gender=${gender}`);
-    }, 1500);
+    }, 800);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
       <Header />
       
-      {/* 배경 별 효과 */}
-      <div className="fixed inset-0 overflow-hidden">
-        {stars.map((star, i) => (
-          <div
-            key={i}
-            className="absolute bg-white rounded-full opacity-70"
-            style={{
-              width: `${star.width}px`,
-              height: `${star.height}px`,
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              animation: `twinkle ${star.duration}s infinite ${star.delay}s`
-            }}
-          />
-        ))}
+      {/* 간단한 배경 패턴으로 대체 */}
+      <div className="fixed inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25% 25%, white 2px, transparent 2px),
+                           radial-gradient(circle at 75% 75%, white 1px, transparent 1px)`,
+          backgroundSize: '100px 100px, 50px 50px'
+        }} />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 마법의 거울 섹션 */}
         <div className="text-center mb-8">
           <div className="relative inline-block">
-            {/* 거울 프레임 - 모바일 최적화 */}
+            {/* 거울 프레임 - 애니메이션 간소화 */}
             <div className={`
               relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 mx-auto mb-6
               bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600
               rounded-full p-3 sm:p-4 shadow-2xl
-              ${isShimmering ? 'animate-pulse' : ''}
               ${isMirrorReflecting ? 'animate-pulse' : ''}
-              transform hover:scale-105 transition-all duration-500
+              hover:scale-105 transition-transform duration-300
             `}>
               <div className="w-full h-full bg-gradient-to-br from-purple-300 via-pink-200 to-purple-300 rounded-full flex items-center justify-center relative overflow-hidden">
                 {/* 거울 반사 효과 */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white to-transparent opacity-30" />
                 
-                {/* 거울 속 텍스트 - 모바일 최적화 */}
+                {/* 거울 속 텍스트 */}
                 <div className="text-center p-4 sm:p-6">
                   <p className="text-3xl sm:text-4xl md:text-5xl font-serif text-purple-900 mb-2 sm:mb-4">✨</p>
                   <p className="text-lg sm:text-xl md:text-2xl font-serif text-purple-800 italic font-bold leading-tight">
@@ -92,12 +60,12 @@ export default function Home() {
               </div>
             </div>
             
-            {/* 거울 장식 - 모바일 최적화 */}
+            {/* 거울 장식 */}
             <div className="absolute -top-6 sm:-top-8 md:-top-10 left-1/2 transform -translate-x-1/2">
               <div className="text-4xl sm:text-5xl md:text-6xl">👑</div>
             </div>
             
-            {/* 추가 장식 요소들 - 모바일에서 크기 조정 */}
+            {/* 추가 장식 요소들 */}
             <div className="absolute -left-4 sm:-left-6 md:-left-8 top-1/4">
               <div className="text-2xl sm:text-3xl md:text-4xl">⭐</div>
             </div>
@@ -106,7 +74,7 @@ export default function Home() {
             </div>
           </div>
           
-          {/* 메인 타이틀 - 모바일 최적화 */}
+          {/* 메인 타이틀 */}
           <div className="relative mb-4">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 font-bold tracking-wide">
               마법의 거울
@@ -123,7 +91,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 성별 선택 섹션 - 모바일 최적화 */}
+        {/* 성별 선택 섹션 - 애니메이션 최적화 */}
         <div className="bg-purple-800/30 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-8 border border-purple-400/30 shadow-2xl">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-center mb-6 sm:mb-8 text-purple-100">
             ✨ 당신은 누구인가요? ✨
@@ -133,7 +101,7 @@ export default function Home() {
             <button
               onClick={() => handleGenderSelect('male')}
               className={`
-                group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 transition-all duration-300
+                group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 transition-all duration-200
                 ${selectedGender === 'male' 
                   ? 'border-blue-400 bg-blue-500/20 scale-105' 
                   : 'border-purple-400/50 bg-purple-700/20 hover:border-blue-400 hover:bg-blue-500/10 active:scale-95'
@@ -142,21 +110,16 @@ export default function Home() {
               disabled={isMirrorReflecting}
             >
               <div className="text-center">
-                <div className="text-5xl sm:text-6xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform">🤴</div>
+                <div className="text-5xl sm:text-6xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-200">🤴</div>
                 <div className="text-lg sm:text-xl font-serif text-blue-300 group-hover:text-blue-200">왕자님</div>
                 <div className="text-xs sm:text-sm text-purple-300 mt-1 sm:mt-2">남성 도전자</div>
-              </div>
-              
-              {/* 호버 시 반짝임 효과 */}
-              <div className="absolute inset-0 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-transparent to-blue-400/20 animate-pulse" />
               </div>
             </button>
             
             <button
               onClick={() => handleGenderSelect('female')}
               className={`
-                group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 transition-all duration-300
+                group relative p-6 sm:p-8 rounded-xl sm:rounded-2xl border-2 transition-all duration-200
                 ${selectedGender === 'female' 
                   ? 'border-pink-400 bg-pink-500/20 scale-105' 
                   : 'border-purple-400/50 bg-purple-700/20 hover:border-pink-400 hover:bg-pink-500/10 active:scale-95'
@@ -165,14 +128,9 @@ export default function Home() {
               disabled={isMirrorReflecting}
             >
               <div className="text-center">
-                <div className="text-5xl sm:text-6xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform">👸</div>
+                <div className="text-5xl sm:text-6xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-200">👸</div>
                 <div className="text-lg sm:text-xl font-serif text-pink-300 group-hover:text-pink-200">공주님</div>
                 <div className="text-xs sm:text-sm text-purple-300 mt-1 sm:mt-2">여성 도전자</div>
-              </div>
-              
-              {/* 호버 시 반짝임 효과 */}
-              <div className="absolute inset-0 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-400/20 via-transparent to-pink-400/20 animate-pulse" />
               </div>
             </button>
           </div>
@@ -215,14 +173,6 @@ export default function Home() {
           </p>
         </div>
       </div>
-
-      {/* CSS 애니메이션 */}
-      <style jsx>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

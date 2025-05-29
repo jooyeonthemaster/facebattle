@@ -212,7 +212,7 @@ export async function getRandomImageForBattle(currentImageId: string, currentIma
   }
 }
 
-// 배틀 결과 저장 (공유 가능한 ID와 함께)
+// 배틀 결과 저장 (공유 가능한 ID와 함께) - 수정된 버전
 export async function saveBattleResult(
   image1Id: string,
   image2Id: string,
@@ -252,34 +252,50 @@ export async function saveBattleResult(
     const battleRef = dbRef(rtdb, `battles/${battleId}`);
     await set(battleRef, battleData);
     
-    // 이미지 통계 업데이트 (배틀 수, 승리 수)
+    // 통계 업데이트 - 필드명 통일 및 올바른 로직
+    console.log('배틀 통계 업데이트 시작...');
+    
+    // 두 참가자 모두 배틀 수 증가
+    const updatePromises = [];
+    
+    // Image1 배틀 수 증가
     const image1Ref = dbRef(rtdb, `images/${image1Id}`);
-    const image1Snapshot = await get(image1Ref);
-    if (image1Snapshot.exists()) {
-      const image1Data = image1Snapshot.val();
-      await update(image1Ref, {
-        battleCount: (image1Data.battleCount || image1Data.battlesCount || 0) + 1
-      });
-    }
+    updatePromises.push(
+      get(image1Ref).then(snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const currentBattleCount = data.battleCount || 0;
+          const currentWinCount = data.winCount || 0;
+          
+          return update(image1Ref, {
+            battleCount: currentBattleCount + 1,
+            winCount: winnerId === image1Id ? currentWinCount + 1 : currentWinCount
+          });
+        }
+      })
+    );
     
+    // Image2 배틀 수 증가
     const image2Ref = dbRef(rtdb, `images/${image2Id}`);
-    const image2Snapshot = await get(image2Ref);
-    if (image2Snapshot.exists()) {
-      const image2Data = image2Snapshot.val();
-      await update(image2Ref, {
-        battlesCount: (image2Data.battlesCount || 0) + 1
-      });
-    }
+    updatePromises.push(
+      get(image2Ref).then(snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const currentBattleCount = data.battleCount || 0;
+          const currentWinCount = data.winCount || 0;
+          
+          return update(image2Ref, {
+            battleCount: currentBattleCount + 1,
+            winCount: winnerId === image2Id ? currentWinCount + 1 : currentWinCount
+          });
+        }
+      })
+    );
     
-    // 승자의 승리 수 증가
-    const winnerRef = dbRef(rtdb, `images/${winnerId}`);
-    const winnerSnapshot = await get(winnerRef);
-    if (winnerSnapshot.exists()) {
-      const winnerData = winnerSnapshot.val();
-      await update(winnerRef, {
-        winsCount: (winnerData.winsCount || 0) + 1
-      });
-    }
+    // 모든 업데이트 완료 대기
+    await Promise.all(updatePromises);
+    
+    console.log('배틀 통계 업데이트 완료');
     
     return {
       id: battleId,
@@ -397,62 +413,154 @@ export async function getBattleResult(battleId: string): Promise<{
   }
 }
 
-// 상위 랭킹 이미지 가져오기
+// 베이지안 평균을 계산하는 함수
+function calculateBayesianAverage(wins: number, battles: number, globalAverage: number = 0.5, confidence: number = 10): number {
+  // 베이지안 평균 공식: (C × m + R × v) / (C + v)
+  // C: 신뢰도 상수, m: 전체 평균 승률, R: 실제 승수, v: 실제 배틀 수
+  return (confidence * globalAverage + wins) / (confidence + battles);
+}
+
+// Wilson Score를 계산하는 함수 (더 정확한 방법)
+function calculateWilsonScore(wins: number, battles: number, confidence: number = 1.96): number {
+  if (battles === 0) return 0;
+  
+  const p = wins / battles; // 승률
+  const n = battles; // 총 배틀 수
+  const z = confidence; // 95% 신뢰구간의 z값
+  
+  // Wilson Score 공식
+  const numerator = p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n);
+  const denominator = 1 + (z * z) / n;
+  
+  return numerator / denominator;
+}
+
+// 상위 랭킹 이미지 가져오기 (개선된 랭킹 시스템)
 export async function getTopRankedImages(limitCount: number = 10, gender?: 'male' | 'female' | 'unknown'): Promise<Image[]> {
   try {
+    console.log('개선된 랭킹 시스템으로 데이터 조회 시작...');
+    const startTime = Date.now();
+    
     // Realtime Database에서 이미지 가져오기
     const imagesRef = dbRef(rtdb, 'images');
     const snapshot = await get(imagesRef);
     
     if (!snapshot.exists()) {
+      console.log('데이터가 존재하지 않음');
       return [];
     }
-    
+
     const images: Image[] = [];
     const data = snapshot.val();
     
     console.log('Firebase에서 가져온 전체 데이터 키 개수:', Object.keys(data).length);
     console.log('요청된 성별 필터:', gender);
     
+    // 최소 배틀 수 설정
+    const MIN_BATTLES = 3; // 최소 3전 이상
+    
+    // 전체 평균 승률 계산 (베이지안 평균용)
+    let totalWins = 0;
+    let totalBattles = 0;
+    
+    Object.keys(data).forEach(key => {
+      const imageData = data[key];
+      const battleCount = imageData.battleCount || 0;
+      const winCount = imageData.winCount || 0;
+      
+      if (battleCount >= MIN_BATTLES) {
+        totalWins += winCount;
+        totalBattles += battleCount;
+      }
+    });
+    
+    const globalWinRate = totalBattles > 0 ? totalWins / totalBattles : 0.5;
+    console.log(`전체 평균 승률: ${(globalWinRate * 100).toFixed(1)}%`);
+    
+    // 데이터 처리 및 랭킹 점수 계산
+    const validImages: Array<{
+      key: string, 
+      data: any, 
+      winRate: number, 
+      bayesianScore: number,
+      wilsonScore: number,
+      battleCount: number,
+      winCount: number
+    }> = [];
+    
     Object.keys(data).forEach(key => {
       const imageData = data[key];
       const imageGender = imageData.gender || 'unknown';
-      const battleCount = imageData.battleCount || imageData.battlesCount || 0;
+      const battleCount = imageData.battleCount || 0;
+      const winCount = imageData.winCount || 0;
       
-      console.log(`이미지 ${key}: 성별=${imageGender}, 배틀수=${battleCount}, 사용자=${imageData.userName}`);
+      // 데이터 검증
+      if (winCount > battleCount) {
+        console.warn(`데이터 오류 발견 - ${imageData.userName}: 승수(${winCount}) > 배틀수(${battleCount})`);
+        return;
+      }
       
-      // 배틀 수가 최소 1회 이상인 이미지만 포함 (테스트용으로 조건 완화)
-      if (battleCount >= 1) {
+      // 최소 배틀 수 조건
+      if (battleCount >= MIN_BATTLES) {
         // 성별 필터가 지정된 경우 해당 성별만 포함
         if (gender && imageGender !== gender) {
-          console.log(`성별 필터로 제외: ${imageGender} !== ${gender}`);
-          return; // 다른 성별이면 제외
+          return;
         }
         
-        images.push({
-          id: key,
-          userID: imageData.userID || imageData.userId,
-          userName: imageData.userName,
-          imageUrl: imageData.imageUrl,
-          analysis: imageData.analysis,
-          createdAt: new Date(imageData.createdAt),
-          battleCount: imageData.battleCount || imageData.battlesCount || 0,
-          winCount: imageData.winCount || imageData.winsCount || 0,
-          lossCount: imageData.lossCount || 0,
-          gender: imageGender
+        const winRate = battleCount > 0 ? (winCount / battleCount) : 0;
+        const bayesianScore = calculateBayesianAverage(winCount, battleCount, globalWinRate);
+        const wilsonScore = calculateWilsonScore(winCount, battleCount);
+        
+        validImages.push({
+          key,
+          data: imageData,
+          winRate,
+          bayesianScore,
+          wilsonScore,
+          battleCount,
+          winCount
         });
       }
     });
     
-    // 승률이 높은 순으로 정렬
-    images.sort((a, b) => {
-      const winRateA = a.battleCount > 0 ? (a.winCount / a.battleCount) : 0;
-      const winRateB = b.battleCount > 0 ? (b.winCount / b.battleCount) : 0;
-      return winRateB - winRateA;
+    console.log('필터링된 이미지 개수:', validImages.length);
+    console.log(`최소 배틀 수 조건: ${MIN_BATTLES}전 이상`);
+    
+    // Wilson Score 기준으로 정렬 (가장 정확한 방법)
+    validImages.sort((a, b) => {
+      // 1차: Wilson Score
+      if (Math.abs(b.wilsonScore - a.wilsonScore) > 0.001) {
+        return b.wilsonScore - a.wilsonScore;
+      }
+      // 2차: 배틀 수 (동점일 경우 더 많은 배틀을 한 사람이 우선)
+      return b.battleCount - a.battleCount;
     });
     
-    // 상위 limitCount 개만 반환
-    return images.slice(0, limitCount);
+    // 상위 limitCount 개만 선택하여 Image 객체 생성
+    const topImages = validImages.slice(0, limitCount);
+    
+    topImages.forEach(({key, data: imageData, winRate, bayesianScore, wilsonScore, battleCount, winCount}, index) => {
+      console.log(`${index + 1}위: ${imageData.userName} - 승률: ${(winRate * 100).toFixed(1)}%, Wilson: ${(wilsonScore * 100).toFixed(1)}%, 배틀: ${battleCount}전 ${winCount}승`);
+      
+      images.push({
+        id: key,
+        userID: imageData.userID || imageData.userId,
+        userName: imageData.userName,
+        imageUrl: imageData.imageUrl,
+        analysis: imageData.analysis,
+        createdAt: new Date(imageData.createdAt),
+        battleCount: battleCount,
+        winCount: winCount,
+        lossCount: battleCount - winCount,
+        gender: imageData.gender || 'unknown'
+      });
+    });
+    
+    const endTime = Date.now();
+    console.log(`개선된 랭킹 시스템 조회 완료: ${endTime - startTime}ms`);
+    console.log('최종 반환 이미지 개수:', images.length);
+    
+    return images;
   } catch (error) {
     console.error('랭킹 이미지 가져오기 중 오류:', error);
     throw new Error('랭킹 이미지를 가져오는데 실패했습니다.');
@@ -497,5 +605,72 @@ export async function getUserImages(userId: string): Promise<Image[]> {
   } catch (error) {
     console.error('사용자 이미지 가져오기 중 오류:', error);
     throw new Error('사용자 이미지를 가져오는데 실패했습니다.');
+  }
+}
+
+// 기존 데이터 정리 함수 (필드명 통일 및 오류 데이터 수정)
+export async function cleanupImageData(): Promise<void> {
+  try {
+    console.log('데이터 정리 시작...');
+    
+    const imagesRef = dbRef(rtdb, 'images');
+    const snapshot = await get(imagesRef);
+    
+    if (!snapshot.exists()) {
+      console.log('정리할 데이터가 없습니다.');
+      return;
+    }
+    
+    const data = snapshot.val();
+    const updatePromises: Promise<void>[] = [];
+    
+    Object.keys(data).forEach(key => {
+      const imageData = data[key];
+      
+      // 필드명 통일 및 데이터 검증
+      const battleCount = Math.max(
+        imageData.battleCount || 0,
+        imageData.battlesCount || 0
+      );
+      
+      const winCount = Math.min(
+        Math.max(imageData.winCount || 0, imageData.winsCount || 0),
+        battleCount // 승수는 배틀수를 초과할 수 없음
+      );
+      
+      // 데이터 업데이트가 필요한 경우
+      if (
+        imageData.battlesCount !== undefined ||
+        imageData.winsCount !== undefined ||
+        winCount > battleCount ||
+        !imageData.battleCount ||
+        !imageData.winCount
+      ) {
+        console.log(`데이터 정리: ${imageData.userName} - ${battleCount}전 ${winCount}승`);
+        
+        const imageRef = dbRef(rtdb, `images/${key}`);
+        updatePromises.push(
+          update(imageRef, {
+            battleCount: battleCount,
+            winCount: winCount,
+            lossCount: battleCount - winCount,
+            // 기존 잘못된 필드 제거
+            battlesCount: null,
+            winsCount: null
+          })
+        );
+      }
+    });
+    
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises);
+      console.log(`${updatePromises.length}개 이미지 데이터 정리 완료`);
+    } else {
+      console.log('정리가 필요한 데이터가 없습니다.');
+    }
+    
+  } catch (error) {
+    console.error('데이터 정리 중 오류:', error);
+    throw new Error('데이터 정리에 실패했습니다.');
   }
 } 

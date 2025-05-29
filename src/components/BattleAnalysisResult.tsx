@@ -53,7 +53,7 @@ export default function BattleAnalysisResult({
   currentImage, 
   opponentImage, 
   winnerImage, 
-  analysisText 
+  analysisText, 
 }: BattleAnalysisResultProps) {
   const { verdict, winner } = extractKeyInsights(analysisText);
   const [showCurrentDetails, setShowCurrentDetails] = useState(false);
@@ -85,7 +85,7 @@ export default function BattleAnalysisResult({
         <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
           {/* 현재 사용자 */}
           <div className={`
-            relative p-6 rounded-xl border-2 transition-all duration-300 flex-1 max-w-sm
+            relative p-6 rounded-xl border-2 transition-all duration-200 flex-1 max-w-sm
             ${winnerImage.id === currentImage.id 
               ? 'border-yellow-400 bg-yellow-500/10 shadow-lg shadow-yellow-400/20' 
               : 'border-purple-400/50 bg-purple-800/30'
@@ -100,7 +100,7 @@ export default function BattleAnalysisResult({
                   className="w-full h-full object-cover rounded-full border-4 border-purple-400"
                 />
                 {winnerImage.id === currentImage.id && (
-                  <div className="absolute -top-2 -right-2 text-2xl sm:text-3xl animate-bounce">👑</div>
+                  <div className="absolute -top-2 -right-2 text-2xl sm:text-3xl">👑</div>
                 )}
               </div>
               
@@ -154,13 +154,13 @@ export default function BattleAnalysisResult({
           </div>
 
           {/* VS 표시 */}
-          <div className="text-4xl sm:text-6xl font-bold text-yellow-300 animate-pulse">
+          <div className="text-4xl sm:text-6xl font-bold text-yellow-300">
             VS
           </div>
 
           {/* 상대방 */}
           <div className={`
-            relative p-6 rounded-xl border-2 transition-all duration-300 flex-1 max-w-sm
+            relative p-6 rounded-xl border-2 transition-all duration-200 flex-1 max-w-sm
             ${winnerImage.id === opponentImage.id 
               ? 'border-yellow-400 bg-yellow-500/10 shadow-lg shadow-yellow-400/20' 
               : 'border-purple-400/50 bg-purple-800/30'
@@ -175,7 +175,7 @@ export default function BattleAnalysisResult({
                   className="w-full h-full object-cover rounded-full border-4 border-purple-400"
                 />
                 {winnerImage.id === opponentImage.id && (
-                  <div className="absolute -top-2 -right-2 text-2xl sm:text-3xl animate-bounce">👑</div>
+                  <div className="absolute -top-2 -right-2 text-2xl sm:text-3xl">👑</div>
                 )}
               </div>
               
@@ -234,13 +234,13 @@ export default function BattleAnalysisResult({
       <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl border border-purple-400/30">
         <button
           onClick={() => setShowCurrentDetails(!showCurrentDetails)}
-          className="w-full p-6 text-left hover:bg-purple-800/30 transition-colors rounded-xl"
+          className="w-full p-6 text-left hover:bg-purple-800/30 transition-colors duration-200 rounded-xl"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-serif text-yellow-300">
               📊 {currentImage.userName}님의 세부 분석
             </h3>
-            <div className={`transform transition-transform ${showCurrentDetails ? 'rotate-180' : ''}`}>
+            <div className={`transform transition-transform duration-200 ${showCurrentDetails ? 'rotate-180' : ''}`}>
               <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -272,10 +272,10 @@ export default function BattleAnalysisResult({
                       <div className="flex items-center space-x-3">
                         <div className="flex-1 bg-purple-700/50 rounded-full h-4 relative overflow-hidden">
                           <div 
-                            className={`h-full bg-gradient-to-r ${category.color} transition-all duration-1000 relative`}
+                            className={`h-full bg-gradient-to-r ${category.color} transition-all duration-500 relative`}
                             style={{ width: `${(score / 10) * 100}%` }}
                           >
-                            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                            <div className="absolute inset-0 bg-white/20" />
                           </div>
                         </div>
                         <div className="text-purple-200 text-sm font-medium">{score}/10</div>
@@ -302,13 +302,13 @@ export default function BattleAnalysisResult({
       <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl border border-purple-400/30">
         <button
           onClick={() => setShowOpponentDetails(!showOpponentDetails)}
-          className="w-full p-6 text-left hover:bg-purple-800/30 transition-colors rounded-xl"
+          className="w-full p-6 text-left hover:bg-purple-800/30 transition-colors duration-200 rounded-xl"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-serif text-yellow-300">
               📊 {opponentImage.userName}님의 세부 분석
             </h3>
-            <div className={`transform transition-transform ${showOpponentDetails ? 'rotate-180' : ''}`}>
+            <div className={`transform transition-transform duration-200 ${showOpponentDetails ? 'rotate-180' : ''}`}>
               <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -340,10 +340,10 @@ export default function BattleAnalysisResult({
                       <div className="flex items-center space-x-3">
                         <div className="flex-1 bg-purple-700/50 rounded-full h-4 relative overflow-hidden">
                           <div 
-                            className={`h-full bg-gradient-to-r ${category.color} transition-all duration-1000 relative`}
+                            className={`h-full bg-gradient-to-r ${category.color} transition-all duration-500 relative`}
                             style={{ width: `${(score / 10) * 100}%` }}
                           >
-                            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                            <div className="absolute inset-0 bg-white/20" />
                           </div>
                         </div>
                         <div className="text-purple-200 text-sm font-medium">{score}/10</div>

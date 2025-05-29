@@ -1,0 +1,23 @@
+# robots.txt for FaceBattle - AI Face Rating Service
+
+User-agent: *
+Allow: /
+
+# SEO-friendly pages
+Allow: /
+Allow: /battle
+Allow: /ranking
+Allow: /upload
+Allow: /terms
+Allow: /privacy
+
+# Block sensitive areas (if any)
+Disallow: /api/
+Disallow: /_next/static/
+Disallow: /admin/
+
+# Sitemap location
+Sitemap: https://facebattle.vercel.app/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1 

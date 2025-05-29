@@ -33,21 +33,6 @@ export async function fileToGenerativePart(file: File): Promise<{
 }
 
 /**
- * 기본 빈 분석 객체 생성 (이미지 업로드 시 사용)
- */
-export function createEmptyAnalysis() {
-  return {
-    goldenRatio: 0,
-    facialFeatures: 0,
-    skinTexture: 0,
-    impressiveness: 0,
-    growingCharm: 0,
-    averageScore: 0,
-    description: ''
-  };
-}
-
-/**
  * 이미지 분석 및 평가 수행하는 함수
  */
 export async function analyzeImage(imageFile: File): Promise<string> {

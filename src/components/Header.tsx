@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Header() {
   const router = useRouter();
@@ -13,6 +14,11 @@ export default function Header() {
     { name: '랭킹', href: '/ranking', icon: '🏆' },
     { name: '대결', href: '/battle', icon: '⚔️' },
     { name: '업로드', href: '/upload', icon: '📸' },
+  ];
+
+  const legalLinks = [
+    { name: '이용약관', href: '/terms' },
+    { name: '개인정보처리방침', href: '/privacy' },
   ];
 
   const handleNavigation = (href: string) => {
@@ -41,7 +47,42 @@ export default function Header() {
           </div>
 
           {/* 데스크톱 네비게이션 */}
-          <nav className="hidden md:flex space-x-1">
+          <div className="hidden lg:flex items-center space-x-6">
+            <nav className="flex space-x-1">
+              {navigation.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigation(item.href)}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                    ${pathname === item.href
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'text-purple-200 hover:text-white hover:bg-purple-700/50'
+                    }
+                  `}
+                >
+                  <span className="mr-1">{item.icon}</span>
+                  {item.name}
+                </button>
+              ))}
+            </nav>
+            
+            {/* 법적 문서 링크 */}
+            <div className="flex items-center space-x-4 border-l border-purple-400/30 pl-6">
+              {legalLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className="text-xs text-purple-300 hover:text-purple-100 transition-colors duration-200"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 중간 크기 화면용 네비게이션 */}
+          <nav className="hidden md:flex lg:hidden space-x-1">
             {navigation.map((item) => (
               <button
                 key={item.name}
@@ -95,6 +136,20 @@ export default function Header() {
                   {item.name}
                 </button>
               ))}
+              
+              {/* 모바일 법적 문서 링크 */}
+              <div className="border-t border-purple-400/30 pt-2 mt-2">
+                {legalLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-purple-300 hover:text-purple-100 transition-colors duration-200"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         )}

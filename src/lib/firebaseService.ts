@@ -673,4 +673,258 @@ export async function cleanupImageData(): Promise<void> {
     console.error('데이터 정리 중 오류:', error);
     throw new Error('데이터 정리에 실패했습니다.');
   }
+}
+
+// 시뮬레이션 배틀 결과 저장 (통계 업데이트 없음)
+export async function saveSimulationBattleResult(
+  image1Data: {
+    id: string;
+    userName: string;
+    imageUrl: string;
+    analysis: Analysis;
+    gender: 'male' | 'female' | 'unknown';
+  },
+  image2Data: {
+    id: string;
+    userName: string;
+    imageUrl: string;
+    analysis: Analysis;
+    gender: 'male' | 'female' | 'unknown';
+  },
+  winnerId: string,
+  resultText: string
+): Promise<Battle> {
+  try {
+    const battleId = uuidv4();
+    
+    // 시뮬레이션 배틀 정보 저장 (statistics 컬렉션이 아닌 simulations 컬렉션에 저장)
+    const battleData = {
+      image1Id: image1Data.id,
+      image2Id: image2Data.id,
+      winnerId,
+      resultText,
+      createdAt: new Date().toISOString(),
+      isSimulation: true, // 시뮬레이션 구분 플래그
+      // 시뮬레이션용 이미지 데이터 저장
+      image1Data: {
+        id: image1Data.id,
+        userName: image1Data.userName,
+        imageUrl: image1Data.imageUrl,
+        analysis: image1Data.analysis,
+        gender: image1Data.gender
+      },
+      image2Data: {
+        id: image2Data.id,
+        userName: image2Data.userName,
+        imageUrl: image2Data.imageUrl,
+        analysis: image2Data.analysis,
+        gender: image2Data.gender
+      }
+    };
+    
+    // Realtime Database의 simulations 경로에 저장 (기존 battles와 분리)
+    const simulationRef = dbRef(rtdb, `simulations/${battleId}`);
+    await set(simulationRef, battleData);
+    
+    console.log('시뮬레이션 배틀 결과 저장 완료 (통계 업데이트 없음)');
+    
+    return {
+      id: battleId,
+      image1Id: image1Data.id,
+      image2Id: image2Data.id,
+      winnerId,
+      resultText,
+      createdAt: new Date()
+    };
+  } catch (error) {
+    console.error('시뮬레이션 배틀 결과 저장 중 오류:', error);
+    throw new Error('시뮬레이션 배틀 결과를 저장하는데 실패했습니다.');
+  }
+}
+
+// 시뮬레이션 배틀 결과 조회
+export async function getSimulationBattleResult(battleId: string): Promise<{
+  battle: Battle;
+  image1: Image;
+  image2: Image;
+  winner: Image;
+} | null> {
+  try {
+    // Realtime Database의 simulations 경로에서 조회
+    const simulationRef = dbRef(rtdb, `simulations/${battleId}`);
+    const snapshot = await get(simulationRef);
+    
+    if (!snapshot.exists()) {
+      return null;
+    }
+    
+    const battleData = snapshot.val();
+    
+    // 저장된 이미지 데이터 사용
+    const image1: Image = {
+      ...battleData.image1Data,
+      createdAt: new Date(),
+      battleCount: 0, // 시뮬레이션은 통계에 영향 없음
+      winCount: 0,
+      lossCount: 0
+    };
+
+    const image2: Image = {
+      ...battleData.image2Data,
+      createdAt: new Date(),
+      battleCount: 0, // 시뮬레이션은 통계에 영향 없음
+      winCount: 0,
+      lossCount: 0
+    };
+    
+    const winner = battleData.winnerId === image1.id ? image1 : image2;
+    
+    return {
+      battle: {
+        id: battleId,
+        image1Id: battleData.image1Id,
+        image2Id: battleData.image2Id,
+        winnerId: battleData.winnerId,
+        resultText: battleData.resultText,
+        createdAt: new Date(battleData.createdAt)
+      },
+      image1,
+      image2,
+      winner
+    };
+  } catch (error) {
+    console.error('시뮬레이션 배틀 결과 조회 중 오류:', error);
+    throw new Error('시뮬레이션 배틀 결과를 조회하는데 실패했습니다.');
+  }
+}
+
+/**
+ * 다중 참가자 시뮬레이션 결과 저장 (1명~4명)
+ */
+export async function saveMultiSimulationResult(
+  participants: Array<{
+    id: string;
+    userName: string;
+    imageUrl: string;
+    analysis: Analysis & { rank?: number };
+    gender: 'male' | 'female' | 'unknown';
+  }>,
+  resultText: string,
+  verdict?: string
+): Promise<{ id: string; participantCount: number }> {
+  try {
+    const battleId = uuidv4();
+    const participantCount = participants.length;
+    
+    // 승자 결정 (1위 또는 가장 높은 점수)
+    const winner = participants.find(p => p.analysis.rank === 1) || 
+                   participants.reduce((prev, current) => 
+                     (current.analysis.averageScore > prev.analysis.averageScore) ? current : prev
+                   );
+
+    // Realtime Database에 다중 시뮬레이션 결과 저장
+    const battleData = {
+      id: battleId,
+      participantCount,
+      participants: participants.map(p => ({
+        id: p.id,
+        userName: p.userName,
+        imageUrl: p.imageUrl,
+        analysis: p.analysis,
+        gender: p.gender,
+        rank: p.analysis.rank || 0
+      })),
+      winnerId: winner.id,
+      winnerRank: winner.analysis.rank || 1,
+      resultText,
+      verdict: verdict || '',
+      createdAt: new Date().toISOString(),
+      type: 'multi_simulation' // 다중 시뮬레이션임을 표시
+    };
+
+    const battleRef = dbRef(rtdb, `simulations/${battleId}`);
+    await set(battleRef, battleData);
+
+    return {
+      id: battleId,
+      participantCount
+    };
+  } catch (error) {
+    console.error('다중 시뮬레이션 결과 저장 중 오류:', error);
+    throw new Error('다중 시뮬레이션 결과 저장에 실패했습니다.');
+  }
+}
+
+/**
+ * 다중 참가자 시뮬레이션 결과 조회
+ */
+export async function getMultiSimulationResult(battleId: string): Promise<{
+  battle: {
+    id: string;
+    participantCount: number;
+    winnerId: string;
+    winnerRank: number;
+    resultText: string;
+    verdict: string;
+    createdAt: string;
+    type: string;
+  };
+  participants: Array<{
+    id: string;
+    userName: string;
+    imageUrl: string;
+    analysis: Analysis & { rank?: number };
+    gender: 'male' | 'female' | 'unknown';
+    rank: number;
+  }>;
+  winner: {
+    id: string;
+    userName: string;
+    imageUrl: string;
+    analysis: Analysis & { rank?: number };
+    gender: 'male' | 'female' | 'unknown';
+    rank: number;
+  };
+} | null> {
+  try {
+    const battleRef = dbRef(rtdb, `simulations/${battleId}`);
+    const snapshot = await get(battleRef);
+    
+    if (!snapshot.exists()) {
+      return null;
+    }
+    
+    const battleData = snapshot.val();
+    
+    // 다중 시뮬레이션이 아니거나 participants가 없으면 null 반환
+    if (!battleData.participants || !Array.isArray(battleData.participants)) {
+      return null;
+    }
+    
+    // 참가자들을 순위별로 정렬
+    const sortedParticipants = battleData.participants.sort((a: any, b: any) => {
+      return (a.rank || 999) - (b.rank || 999);
+    });
+    
+    // 승자 찾기
+    const winner = sortedParticipants.find((p: any) => p.id === battleData.winnerId) || sortedParticipants[0];
+    
+    return {
+      battle: {
+        id: battleData.id,
+        participantCount: battleData.participantCount,
+        winnerId: battleData.winnerId,
+        winnerRank: battleData.winnerRank,
+        resultText: battleData.resultText,
+        verdict: battleData.verdict || '',
+        createdAt: battleData.createdAt,
+        type: battleData.type || 'multi_simulation'
+      },
+      participants: sortedParticipants,
+      winner
+    };
+  } catch (error) {
+    console.error('다중 시뮬레이션 결과 조회 중 오류:', error);
+    return null;
+  }
 } 

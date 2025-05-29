@@ -365,6 +365,43 @@ export default function Home() {
           </div>
         </div>
 
+        {/* 시뮬레이션 소개 섹션 - 새로 추가 */}
+        <div className="bg-gradient-to-r from-indigo-800/30 to-purple-800/30 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-purple-400/30 mb-8 hover:from-indigo-700/30 hover:to-purple-700/30 transition-all duration-300">
+          <div className="text-center">
+            <div className="text-4xl sm:text-5xl mb-4">🔬</div>
+            <h2 className="text-2xl sm:text-3xl font-serif text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300 mb-4 font-bold">
+              시뮬레이션 모드
+            </h2>
+            <p className="text-purple-200 text-base sm:text-lg mb-6 max-w-2xl mx-auto leading-relaxed">
+              두 이미지를 직접 업로드해서 <span className="text-cyan-300 font-bold">AI 대결</span>을 시뮬레이션해보세요!<br/>
+              <span className="text-sm text-purple-300">※ 시뮬레이션 결과는 랭킹에 영향을 주지 않습니다</span>
+            </p>
+            
+            {/* 시뮬레이션 특징들 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-blue-700/20 rounded-lg p-4 border border-blue-400/30">
+                <div className="text-2xl mb-2">📸</div>
+                <div className="text-blue-200 font-medium text-sm">두 이미지 직접 업로드</div>
+              </div>
+              <div className="bg-purple-700/20 rounded-lg p-4 border border-purple-400/30">
+                <div className="text-2xl mb-2">⚡</div>
+                <div className="text-purple-200 font-medium text-sm">실시간 AI 분석</div>
+              </div>
+              <div className="bg-pink-700/20 rounded-lg p-4 border border-pink-400/30">
+                <div className="text-2xl mb-2">🎭</div>
+                <div className="text-pink-200 font-medium text-sm">재미있는 대결 시뮬레이션</div>
+              </div>
+            </div>
+            
+            <Link 
+              href="/simulation"
+              className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-serif transform hover:scale-105 active:scale-95 transition-all shadow-lg text-base sm:text-lg"
+            >
+              🔬 시뮬레이션 시작하기
+            </Link>
+          </div>
+        </div>
+
         {/* 안내 메시지 - 모바일 최적화 */}
         <div className="bg-purple-900/50 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-400/30 text-center mb-6">
           <p className="text-purple-200 text-sm sm:text-base leading-relaxed">

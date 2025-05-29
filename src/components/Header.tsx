@@ -13,6 +13,7 @@ export default function Header() {
     { name: '홈', href: '/', icon: '🏠' },
     { name: '랭킹', href: '/ranking', icon: '🏆' },
     { name: '대결', href: '/battle', icon: '⚔️' },
+    { name: '시뮬레이션', href: '/simulation', icon: '🔬' },
     { name: '업로드', href: '/upload', icon: '📸' },
   ];
 
